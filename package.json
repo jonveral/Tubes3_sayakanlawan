@@ -1,0 +1,19 @@
+{
+  "name": "judol-detector",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "npm run typecheck && node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.42",
+    "esbuild": "^0.28.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.13",
+    "vitest": "^4.1.6"
+  }
+}
