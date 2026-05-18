@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Judol Detector</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup__header">
+        <div>
+          <h1>Judol Detector</h1>
+          <p id="scan-time">No scan yet</p>
+        </div>
+        <span id="scan-status" class="status">Idle</span>
+      </header>
+
+      <section class="summary" aria-label="Scan summary">
+        <span id="total-findings" class="summary__value">0</span>
+        <span class="summary__label">Total findings</span>
+      </section>
+
+      <section class="section" aria-labelledby="algorithm-heading">
+        <h2 id="algorithm-heading">Algorithm stats</h2>
+        <div id="algorithm-stats" class="list"></div>
+      </section>
+
+      <section class="section" aria-labelledby="keyword-heading">
+        <h2 id="keyword-heading">Keyword comparison</h2>
+        <div id="keyword-counts" class="list"></div>
+      </section>
+    </main>
+    <script src="./popup.js"></script>
+  </body>
+</html>
