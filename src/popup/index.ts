@@ -1,12 +1,23 @@
 import type { AlgorithmRunStats, ScanResult } from "../shared/contracts";
-import { STORAGE_SCAN_RESULT_KEY } from "../shared/messages";
+import {
+  STORAGE_SCAN_RESULT_KEY,
+  STORAGE_BLUR_KEY,
+  RESCAN_REQUEST_MESSAGE
+} from "../shared/messages";
+
+// Mapping warna visual untuk progress bar
+const ALGO_COLORS: Record<string, string> = {
+  "kmp": "#4dabf7",                    
+  "boyer-moore": "#51cf66",            
+  "regex": "#ff6b6b",                  
+  "weighted-levenshtein": "#cc5de8",   
+};
 
 function requireElement(id: string): HTMLElement {
   const element = document.getElementById(id);
   if (element === null) {
     throw new Error(`Missing popup element #${id}`);
   }
-
   return element;
 }
 
@@ -14,7 +25,12 @@ function formatMs(value: number): string {
   return `${value.toFixed(2)} ms`;
 }
 
-function createMetricRow(name: string, value: string, ratio: number): HTMLElement {
+function createMetricRow(
+  name: string,
+  value: string,
+  ratio: number,
+  barColor?: string
+): HTMLElement {
   const wrapper = document.createElement("div");
   wrapper.className = "metric";
 
@@ -35,6 +51,10 @@ function createMetricRow(name: string, value: string, ratio: number): HTMLElemen
   const fill = document.createElement("div");
   fill.className = "bar__fill";
   fill.style.setProperty("--bar-width", `${Math.round(ratio * 100)}%`);
+
+  if (barColor) {
+    fill.style.backgroundColor = barColor;
+  }
 
   row.append(label, metricValue);
   bar.append(fill);
@@ -61,13 +81,15 @@ function renderAlgorithmStats(
     return;
   }
 
-  const maxMatches = Math.max(1, ...stats.map((item) => item.matchCount));
+  const maxMatches = Math.max(1, ...stats.map((s) => s.matchCount));
   for (const item of stats) {
+    const color = ALGO_COLORS[item.algorithm] ?? "#f1b84b";
     container.append(
       createMetricRow(
         item.algorithm,
         `${item.matchCount} matches / ${formatMs(item.durationMs)}`,
-        item.matchCount / maxMatches
+        item.matchCount / maxMatches,
+        color
       )
     );
   }
@@ -83,6 +105,8 @@ function renderKeywordCounts(
     renderEmpty(container, "No keyword matches yet.");
     return;
   }
+
+  entries.sort((a, b) => b[1] - a[1]);
 
   const maxCount = Math.max(1, ...entries.map(([, count]) => count));
   for (const [keyword, count] of entries) {
@@ -125,19 +149,50 @@ async function readStoredResult(): Promise<ScanResult | null> {
   });
 }
 
+// Inisialisasi awal UI popup
 document.addEventListener("DOMContentLoaded", () => {
   void readStoredResult().then(renderResult);
 
+  // Sync data secara realtime
   if (typeof chrome !== "undefined" && chrome.storage?.onChanged !== undefined) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName !== "local") {
-        return;
-      }
+      if (areaName !== "local") return;
 
       const updated = changes[STORAGE_SCAN_RESULT_KEY]?.newValue as
         | ScanResult
         | undefined;
-      renderResult(updated ?? null);
+      if (updated) {
+        renderResult(updated);
+      }
+    });
+  }
+
+  // Event listener fitur blur
+  const blurToggle = document.getElementById("blur-toggle") as HTMLInputElement | null;
+
+  if (blurToggle && typeof chrome !== "undefined" && chrome.storage?.local) {
+    chrome.storage.local.get([STORAGE_BLUR_KEY], (items) => {
+      blurToggle.checked = items[STORAGE_BLUR_KEY] === true;
+    });
+
+    blurToggle.addEventListener("change", () => {
+      chrome.storage.local.set({ [STORAGE_BLUR_KEY]: blurToggle.checked });
+    });
+  }
+
+  // Trigger rescanning halaman aktif
+  const rescanBtn = document.getElementById("rescan-btn");
+
+  if (rescanBtn) {
+    rescanBtn.addEventListener("click", () => {
+      if (typeof chrome === "undefined" || !chrome.tabs) return;
+
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tabId = tabs[0]?.id;
+        if (tabId !== undefined) {
+          chrome.tabs.sendMessage(tabId, { type: RESCAN_REQUEST_MESSAGE });
+        }
+      });
     });
   }
 });
