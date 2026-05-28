@@ -141,11 +141,11 @@
     let totalComparisons = 0;
     const text = input.text;
     const patterns = [
-      // Pattern standar: kata >= 3 huruf diikuti 2-4 angka
+      // Pattern 1: kata >= 3 huruf diikuti 2-4 angka
       /\b([a-zA-Z]{3,})(\d{2,4})\b/g,
-      // Pattern mix: kata campur angka di dalamnya
+      // Pattern 2: kata campur angka di dalamnya
       /\b([a-zA-Z][a-zA-Z0-9]*[a-zA-Z])(\d{2,4})\b/g,
-      // Pattern pendek: kata 2 huruf diikuti >= 3 angka
+      // Pattern 3: kata 2 huruf diikuti >= 3 angka
       /\b([a-zA-Z]{2})(\d{3,4})\b/g
     ];
     const seenPos = /* @__PURE__ */ new Set();
@@ -468,8 +468,8 @@
   var TOOLTIP_CLASS = "judol-tooltip";
   var STYLE_ID = "judol-detector-inject-css";
   var HIGHLIGHT_COLORS = {
-    exact: "rgba(255, 193, 7, 0.38)",
-    regex: "rgba(233, 80, 120, 0.32)",
+    exact: "rgba(19, 255, 7, 0.38)",
+    regex: "rgba(246, 242, 11, 0.32)",
     fuzzy: "rgba(156, 39, 176, 0.32)"
   };
   function injectCSS() {
@@ -694,11 +694,6 @@
   var cachedKeywords = null;
   var scanTimer;
   var scanInFlight = false;
-  var observerConfig = {
-    childList: true,
-    subtree: true,
-    characterData: true
-  };
   async function getKeywords() {
     if (cachedKeywords !== null) {
       return cachedKeywords;
@@ -713,13 +708,11 @@
     scanInFlight = true;
     try {
       const keywords = await getKeywords();
+      highlighter.clear();
       const targets = collectTextTargets();
       const text = joinTargetText(targets);
       const result = runDetection({ text, keywords });
-      observer.disconnect();
-      highlighter.clear();
       highlighter.apply(targets, result);
-      observer.observe(document.documentElement, observerConfig);
       await saveScanResult(result);
     } catch (error) {
       console.error("[Judol Detector] scan failed", error);
@@ -735,9 +728,6 @@
       void scanPage();
     }, delayMs);
   }
-  var observer = new MutationObserver(() => {
-    scheduleScan(500);
-  });
   if (document.readyState === "loading") {
     document.addEventListener(
       "DOMContentLoaded",
@@ -749,7 +739,6 @@
   } else {
     scheduleScan(0);
   }
-  observer.observe(document.documentElement, observerConfig);
   if (typeof chrome !== "undefined" && chrome.storage?.local) {
     chrome.storage.local.get([STORAGE_BLUR_KEY], (items) => {
       const isBlur = items[STORAGE_BLUR_KEY] === true;
