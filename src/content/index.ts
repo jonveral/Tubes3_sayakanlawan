@@ -14,13 +14,6 @@ let cachedKeywords: string[] | null = null;
 let scanTimer: number | undefined;
 let scanInFlight = false;
 
-// Setup konfigurasi listener DOM
-const observerConfig: MutationObserverInit = {
-  childList: true,
-  subtree: true,
-  characterData: true,
-};
-
 async function getKeywords(): Promise<string[]> {
   if (cachedKeywords !== null) {
     return cachedKeywords;
@@ -38,18 +31,14 @@ async function scanPage(): Promise<void> {
   scanInFlight = true;
   try {
     const keywords = await getKeywords();
+
+    highlighter.clear();
+
     const targets = collectTextTargets();
     const text = joinTargetText(targets);
     const result = runDetection({ text, keywords });
 
-    // Matikan deteksi saat mewarnai teks
-    observer.disconnect();
-
-    highlighter.clear();
     highlighter.apply(targets, result);
-
-    observer.observe(document.documentElement, observerConfig);
-
     await saveScanResult(result);
   } catch (error) {
     console.error("[Judol Detector] scan failed", error);
@@ -68,10 +57,6 @@ function scheduleScan(delayMs: number): void {
   }, delayMs);
 }
 
-const observer = new MutationObserver(() => {
-  scheduleScan(500);
-});
-
 // Trigger start scanning
 if (document.readyState === "loading") {
   document.addEventListener(
@@ -84,8 +69,6 @@ if (document.readyState === "loading") {
 } else {
   scheduleScan(0);
 }
-
-observer.observe(document.documentElement, observerConfig);
 
 // Setup status pengaturan efek blur
 if (typeof chrome !== "undefined" && chrome.storage?.local) {
