@@ -1,9 +1,7 @@
 import type { AlgorithmResult, MatcherInput, TextMatch } from "../shared/contracts";
 import { emptyAlgorithmResult } from "../shared/stats";
 
-/**
- * Membangun Last Occurrence Table
- */
+// Membangun Last Occurrence Table
 function buildLastOccurrenceTable(pattern: string): Map<string, number> {
   const last = new Map<string, number>();
   for (let i = 0; i < pattern.length; i++) {
@@ -12,9 +10,7 @@ function buildLastOccurrenceTable(pattern: string): Map<string, number> {
   return last;
 }
 
-/**
- * Implementasi algoritma Boyer-Moore (BM) dari awal
- */
+// Implementasi algoritma Boyer-Moore
 export function runBoyerMoore(input: MatcherInput): AlgorithmResult {
   const startMs = performance.now();
   const matches: TextMatch[] = [];

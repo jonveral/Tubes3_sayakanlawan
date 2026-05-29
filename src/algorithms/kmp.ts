@@ -1,9 +1,7 @@
 import type { AlgorithmResult, MatcherInput, TextMatch } from "../shared/contracts";
 import { emptyAlgorithmResult } from "../shared/stats";
 
-/**
- * Membangun array LPS (Border / Failure Function)
- */
+// Membangun array LPS (Border / Failure Function)
 function computeBorderFunction(pattern: string, metrics: { comparisons: number }): number[] {
   const m = pattern.length;
   const lps = new Array(m).fill(0);
@@ -28,9 +26,7 @@ function computeBorderFunction(pattern: string, metrics: { comparisons: number }
   return lps;
 }
 
-/**
- * Implementasi algoritma Knuth-Morris-Pratt (KMP) dari awal
- */
+// Implementasi algoritma Knuth-Morris-Pratt (KMP)
 export function runKmp(input: MatcherInput): AlgorithmResult {
   const startMs = performance.now();
   const matches: TextMatch[] = [];

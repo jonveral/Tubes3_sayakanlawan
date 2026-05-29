@@ -2,7 +2,9 @@ export const ALGORITHM_IDS = [
   "kmp",
   "boyer-moore",
   "regex",
-  "weighted-levenshtein"
+  "weighted-levenshtein",
+  "aho-corasick", 
+  "rabin-karp"
 ] as const;
 
 export type AlgorithmId = (typeof ALGORITHM_IDS)[number];
