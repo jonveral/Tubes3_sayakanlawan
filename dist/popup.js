@@ -10,7 +10,9 @@
     "kmp": "#4dabf7",
     "boyer-moore": "#51cf66",
     "regex": "#ff6b6b",
-    "weighted-levenshtein": "#cc5de8"
+    "weighted-levenshtein": "#cc5de8",
+    "rabin-karp": "#fd7e14",
+    "aho-corasick": "#20c997"
   };
   function requireElement(id) {
     const element = document.getElementById(id);

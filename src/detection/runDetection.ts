@@ -24,13 +24,9 @@ export function runDetection(input: MatcherInput): ScanResult {
     }
   }
 
-  const unmatchedKeywords = input.keywords.filter(
-    (keyword) => !exactMatchedKeywords.has(keyword)
-  );
-
   const fuzzyResult = runWeightedLevenshtein({
     ...input,
-    unmatchedKeywords,
+    unmatchedKeywords: input.keywords, 
     threshold: DEFAULT_FUZZY_THRESHOLD
   });
 

@@ -183,6 +183,158 @@
     };
   }
 
+  // src/algorithms/rabinKarp.ts
+  function runRabinKarp(input) {
+    const startMs = performance.now();
+    const matches = [];
+    let totalComparisons = 0;
+    const text = input.text.toUpperCase();
+    const n = text.length;
+    const d = 256;
+    const q = 101;
+    for (const keyword of input.keywords) {
+      if (keyword.length === 0) continue;
+      const pattern = keyword.toUpperCase();
+      const m = pattern.length;
+      let keywordComparisons = 0;
+      if (m > n) continue;
+      let p = 0;
+      let t = 0;
+      let h = 1;
+      for (let i = 0; i < m - 1; i++) {
+        h = h * d % q;
+      }
+      for (let i = 0; i < m; i++) {
+        p = (d * p + pattern.charCodeAt(i)) % q;
+        t = (d * t + text.charCodeAt(i)) % q;
+      }
+      for (let i = 0; i <= n - m; i++) {
+        keywordComparisons++;
+        if (p === t) {
+          let match = true;
+          for (let j = 0; j < m; j++) {
+            keywordComparisons++;
+            if (text[i + j] !== pattern[j]) {
+              match = false;
+              break;
+            }
+          }
+          if (match) {
+            matches.push({
+              algorithm: "rabin-karp",
+              kind: "exact",
+              keyword,
+              matchedText: input.text.substring(i, i + m),
+              start: i,
+              end: i + m,
+              comparisons: keywordComparisons
+            });
+          }
+        }
+        if (i < n - m) {
+          t = (d * (t - text.charCodeAt(i) * h) + text.charCodeAt(i + m)) % q;
+          if (t < 0) {
+            t = t + q;
+          }
+        }
+      }
+      totalComparisons += keywordComparisons;
+    }
+    const endMs = performance.now();
+    return {
+      algorithm: "rabin-karp",
+      durationMs: endMs - startMs,
+      comparisons: totalComparisons,
+      matches
+    };
+  }
+
+  // src/algorithms/ahoCorasick.ts
+  var TrieNode = class {
+    children = /* @__PURE__ */ new Map();
+    fail = null;
+    output = [];
+    // Menyimpan keyword(s) yang match saat state mencapai node ini
+  };
+  function runAhoCorasick(input) {
+    const startMs = performance.now();
+    const matches = [];
+    let totalComparisons = 0;
+    const text = input.text.toUpperCase();
+    const root = new TrieNode();
+    for (const keyword of input.keywords) {
+      if (keyword.length === 0) continue;
+      const pattern = keyword.toUpperCase();
+      let current2 = root;
+      for (let i = 0; i < pattern.length; i++) {
+        const char = pattern[i];
+        if (!current2.children.has(char)) {
+          current2.children.set(char, new TrieNode());
+        }
+        current2 = current2.children.get(char);
+      }
+      current2.output.push(keyword);
+    }
+    const queue = [];
+    for (const child of root.children.values()) {
+      child.fail = root;
+      queue.push(child);
+    }
+    while (queue.length > 0) {
+      const current2 = queue.shift();
+      for (const [char, child] of current2.children.entries()) {
+        queue.push(child);
+        let failNode = current2.fail;
+        while (failNode !== null && !failNode.children.has(char)) {
+          totalComparisons++;
+          failNode = failNode.fail;
+        }
+        totalComparisons++;
+        if (failNode === null) {
+          child.fail = root;
+        } else {
+          child.fail = failNode.children.get(char);
+          child.output.push(...child.fail.output);
+        }
+      }
+    }
+    let current = root;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      while (current !== root && !current.children.has(char)) {
+        totalComparisons++;
+        current = current.fail;
+      }
+      totalComparisons++;
+      if (current.children.has(char)) {
+        current = current.children.get(char);
+      } else {
+        current = root;
+      }
+      for (const matchedKeyword of current.output) {
+        const m = matchedKeyword.length;
+        const startIdx = i - m + 1;
+        matches.push({
+          algorithm: "aho-corasick",
+          kind: "exact",
+          keyword: matchedKeyword,
+          matchedText: input.text.substring(startIdx, i + 1),
+          // Kasus (case) asli
+          start: startIdx,
+          end: i + 1,
+          comparisons: totalComparisons
+        });
+      }
+    }
+    const endMs = performance.now();
+    return {
+      algorithm: "aho-corasick",
+      durationMs: endMs - startMs,
+      comparisons: totalComparisons,
+      matches
+    };
+  }
+
   // src/algorithms/weightedLevenshtein.ts
   var DEFAULT_FUZZY_THRESHOLD = 0.82;
   var MAX_LEN_DIFF = 3;
@@ -285,6 +437,9 @@
         totalComps += comps;
         const maxLen = Math.max(wordUpper.length, keyword.length);
         const similarity = maxLen > 0 ? 1 - dist / maxLen : 1;
+        if (similarity === 1) {
+          continue;
+        }
         if (similarity >= threshold) {
           matches.push({
             algorithm: "weighted-levenshtein",
@@ -338,24 +493,25 @@
   function runDetection(input) {
     const kmpResult = runKmp(input);
     const boyerMooreResult = runBoyerMoore(input);
+    const rabinKarpResult = runRabinKarp(input);
+    const ahoCorasickResult = runAhoCorasick(input);
     const regexResult = runRegexMatcher(input);
     const exactMatchedKeywords = /* @__PURE__ */ new Set();
-    for (const result of [kmpResult, boyerMooreResult]) {
+    for (const result of [kmpResult, boyerMooreResult, rabinKarpResult, ahoCorasickResult]) {
       for (const match of result.matches) {
         exactMatchedKeywords.add(match.keyword);
       }
     }
-    const unmatchedKeywords = input.keywords.filter(
-      (keyword) => !exactMatchedKeywords.has(keyword)
-    );
     const fuzzyResult = runWeightedLevenshtein({
       ...input,
-      unmatchedKeywords,
+      unmatchedKeywords: input.keywords,
       threshold: DEFAULT_FUZZY_THRESHOLD
     });
     return buildScanResult([
       kmpResult,
       boyerMooreResult,
+      rabinKarpResult,
+      ahoCorasickResult,
       regexResult,
       fuzzyResult
     ]);

@@ -139,6 +139,10 @@ export function runWeightedLevenshtein(input: FuzzyMatcherInput): AlgorithmResul
       const maxLen = Math.max(wordUpper.length, keyword.length);
       const similarity = maxLen > 0 ? 1 - dist / maxLen : 1;
 
+      if (similarity === 1) {
+        continue;
+      }
+
       if (similarity >= threshold) {
         matches.push({
           algorithm: "weighted-levenshtein",
